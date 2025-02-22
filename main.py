@@ -5,30 +5,30 @@ if __name__ == "__main__":
 
     # Size of a memory address in bits
     memory_address_bits = 16
-    memory_size = 2 ** memory_address_bits  # Total memory size in bytes
+    MEMORY_SIZE = 2 ** memory_address_bits  # Total memory size in bytes
 
     # Size of the cache in bytes (must be a power of 2)
-    cache_size = 2 ** 10
+    CACHE_SIZE = 2 ** 10
 
     # Size of a cache block in bytes (must be a power of 2)
-    cache_block_size = 2 ** 6
+    CACHE_BLOCK_SIZE = 2 ** 6
 
     # Cache associativity (must be a power of 2)
     cache_associativity = 2 ** 0
 
-    num_blocks = cache_size // cache_block_size
+    num_blocks = CACHE_SIZE // CACHE_BLOCK_SIZE
 
-    num_sets = num_blocks // cache_associativity
+    NUM_SETS = num_blocks // cache_associativity
 
-    offset_length = int(math.log2(cache_block_size))
+    offset_length = int(math.log2(CACHE_BLOCK_SIZE))
 
-    index_length = int(math.log2(num_sets))
+    index_length = int(math.log2(NUM_SETS))
 
     tag_length = memory_address_bits - (offset_length + index_length)
 
     # Initialize memory so that reading from address A returns A
-    memory = bytearray(memory_size)
-    for i in range(memory_size - 4):
+    memory = bytearray(MEMORY_SIZE)
+    for i in range(MEMORY_SIZE - 4):
         if i % 4 == 0:
             memory[i] = i % 256
 
@@ -40,16 +40,33 @@ if __name__ == "__main__":
 
 
     class CacheBlock:
-        def __init__(self, block_size):
-            self.tag = -1  # Initialize tag to -1
-            self.data = bytearray(block_size)  # Block data
+        def __init__(self, cache_block_size):
+            self.tag = -1
+            self.dirty = False  # not needed for Part One
+            self.valid = False  # not needed for Part One
+            self.data = bytearray(cache_block_size)
+
 
     class CacheSet:
-        def __init__(self, associativity, block_size):
-            self.blocks = [CacheBlock(block_size) for _ in range(associativity)]
+        def __init__(self, cache_block_size, associativity):
+            self.blocks = [CacheBlock(cache_block_size) for i in range(associativity)]
+            self.tag_queue = [-1 for i in range(associativity)]  # not needed for Part One
+
+
+    class Cache:
+        def __init__(self, num_sets, associativity, cache_block_size):
+
+            self.write_through = False  # not needed for Part One
+            self.sets = [CacheSet(cache_block_size, associativity) for i in range(num_sets)]
+            memory_size_bits = math.log2(MEMORY_SIZE)
+            self.cache_size_bits = math.log2(CACHE_SIZE)
+            self.cache_block_size_bits = math.log2(CACHE_BLOCK_SIZE)
+            self.index_length = math.log2(NUM_SETS)
+            self.block_offset_length = math.log2(CACHE_BLOCK_SIZE)
+
 
     # Initialize cache as a list of sets
-    cache = [CacheSet(cache_associativity, cache_block_size) for _ in range(num_sets)]
+    cache = Cache(NUM_SETS, cache_associativity, CACHE_BLOCK_SIZE)
 
 
     def decode_address(A):
@@ -61,37 +78,36 @@ if __name__ == "__main__":
 
     def read_word(A):
         [tag, index, block_offset] = decode_address(A)
-        cache_set = cache[index]
+        cache_set = cache.sets[index]
 
         for block in cache_set.blocks:
             if block.tag == tag:
                 # Cache hit: Extract the word from the block
-                print(f"read hit; index= {index} tag= {tag}")
+                print(f"read hit [addr= {A} index= {index} tag= {tag}]")
                 word = int.from_bytes(block.data[block_offset:block_offset + 4], 'little')
                 print(f"word: {word}")
                 return word
 
         # Cache miss: Load block from memory
-        print(f"read miss; index= {index} tag= {tag}")
-        memory_block_start = A - block_offset
-        new_block = CacheBlock(cache_block_size)
-        new_block.tag = tag
-        new_block.data = memory[memory_block_start : (memory_block_start + cache_block_size)]
+        print(f"read miss [index= {index} tag= {tag}]")
+        memory_block_start = CACHE_BLOCK_SIZE * (A // CACHE_BLOCK_SIZE)
 
-        # Replace the first block in the set (simplest replacement policy)
-        cache_set.blocks[0] = new_block
+        # Read new data into first block in the set
+        block = cache_set.blocks[0]
+        block.tag = tag
+        block.data = memory[memory_block_start : (memory_block_start + CACHE_BLOCK_SIZE)]
 
         # Return the requested word
-        word = int.from_bytes(new_block.data[block_offset:block_offset + 4], 'little')
+        word = int.from_bytes(block.data[block_offset:block_offset + 4], 'little')
         print(f"word: {word}")
         return word
 
     # Test Case 1:
     print("---------------")
-    print("cache size = " + str(cache_size))
-    print("block size = " + str(cache_block_size))
+    print("cache size = " + str(CACHE_SIZE))
+    print("block size = " + str(CACHE_BLOCK_SIZE))
     print("#blocks = " + str(num_blocks))
-    print("#sets = " + str(num_sets))
+    print("#sets = " + str(NUM_SETS))
     print("associativity = " + str(cache_associativity))
     print("tag length = " + str(tag_length))
     print("---------------")
