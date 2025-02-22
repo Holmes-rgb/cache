@@ -27,23 +27,16 @@ if __name__ == "__main__":
     tag_length = memory_address_bits - (offset_length + index_length)
 
     # Initialize memory so that reading from address A returns A
-    memory = [0] * memory_size
-    for i in range(memory_size -4):
+    memory = bytearray(memory_size)
+    for i in range(memory_size - 4):
         if i % 4 == 0:
-            curr = i
-            if i > (256 ** 3):
-                memory[i - 3] = curr // (256 ** 3)
-                curr = curr % (256 ** 3)
+            memory[i] = i % 256
 
-            if i > (256 ** 2):
-                memory[i - 2] = curr // (256 ** 2)
-                curr = curr % (256 ** 2)
+            memory[i + 1] = (i // 256) % 256
 
-            if i > 256:
-                memory[i - 1] = curr // 256
-                curr = curr % 256
+            memory[i + 2] = ((i // 256) // 256) % 256
 
-            memory[i] = curr
+            memory[i + 3] = (((i // 256) // 256) // 256) % 256
 
 
     class CacheBlock:
@@ -73,13 +66,13 @@ if __name__ == "__main__":
         for block in cache_set.blocks:
             if block.tag == tag:
                 # Cache hit: Extract the word from the block
-                print("read hit" + "index: " + index + "tag: " + tag)
+                print(f"read hit; index= {index} tag= {tag}")
                 word = int.from_bytes(block.data[block_offset:block_offset + 4], 'little')
-                print (word)
+                print(f"word: {word}")
                 return word
 
         # Cache miss: Load block from memory
-        print("read miss" + "index: " + index + "tag: " + tag)
+        print(f"read miss; index= {index} tag= {tag}")
         memory_block_start = A - block_offset
         new_block = CacheBlock(cache_block_size)
         new_block.tag = tag
@@ -90,7 +83,7 @@ if __name__ == "__main__":
 
         # Return the requested word
         word = int.from_bytes(new_block.data[block_offset:block_offset + 4], 'little')
-        print("word: " + word)
+        print(f"word: {word}")
         return word
 
     # Test Case 1:
