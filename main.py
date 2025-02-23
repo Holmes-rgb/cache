@@ -1,11 +1,10 @@
 import math
-
 if __name__ == "__main__":
     # Define the configurable parameters for the simulator
 
     # Size of a memory address in bits
-    memory_address_bits = 16
-    MEMORY_SIZE = 2 ** memory_address_bits  # Total memory size in bytes
+    MEMORY_ADDRESS_BITS = 16
+    MEMORY_SIZE = 2 ** MEMORY_ADDRESS_BITS  # Total memory size in bytes
 
     # Size of the cache in bytes (must be a power of 2)
     CACHE_SIZE = 2 ** 10
@@ -14,17 +13,17 @@ if __name__ == "__main__":
     CACHE_BLOCK_SIZE = 2 ** 6
 
     # Cache associativity (must be a power of 2)
-    cache_associativity = 2 ** 0
+    CACHE_ASSOCIATIVITY = 2 ** 0
 
-    num_blocks = CACHE_SIZE // CACHE_BLOCK_SIZE
+    NUM_BLOCKS = CACHE_SIZE // CACHE_BLOCK_SIZE
 
-    NUM_SETS = num_blocks // cache_associativity
+    NUM_SETS = NUM_BLOCKS // CACHE_ASSOCIATIVITY
 
-    offset_length = int(math.log2(CACHE_BLOCK_SIZE))
+    OFFSET_LENGTH = int(math.log2(CACHE_BLOCK_SIZE))
 
-    index_length = int(math.log2(NUM_SETS))
+    INDEX_LENGTH = int(math.log2(NUM_SETS))
 
-    tag_length = memory_address_bits - (offset_length + index_length)
+    TAG_LENGTH = MEMORY_ADDRESS_BITS - (OFFSET_LENGTH + INDEX_LENGTH)
 
     # Initialize memory so that reading from address A returns A
     memory = bytearray(MEMORY_SIZE)
@@ -66,32 +65,30 @@ if __name__ == "__main__":
 
 
     # Initialize cache as a list of sets
-    cache = Cache(NUM_SETS, cache_associativity, CACHE_BLOCK_SIZE)
+    cache = Cache(NUM_SETS, CACHE_ASSOCIATIVITY, CACHE_BLOCK_SIZE)
 
 
     def decode_address(A):
-        block_offset = A & ((1 << offset_length) - 1)
-        index = (A >> offset_length) & ((1 << index_length) - 1)
-        tag = A >> (offset_length + index_length)
+        block_offset = A & ((1 << OFFSET_LENGTH) - 1)
+        index = (A >> OFFSET_LENGTH) & ((1 << INDEX_LENGTH) - 1)
+        tag = A >> (OFFSET_LENGTH + INDEX_LENGTH)
         return [tag, index, block_offset]
 
 
     def read_word(A):
         [tag, index, block_offset] = decode_address(A)
         cache_set = cache.sets[index]
+        memory_block_start = CACHE_BLOCK_SIZE * (A // CACHE_BLOCK_SIZE)
 
-        for block in cache_set.blocks:
+        for block_index, block in enumerate(cache_set.blocks):
             if block.tag == tag:
                 # Cache hit: Extract the word from the block
-                print(f"read hit [addr= {A} index= {index} tag= {tag}]")
                 word = int.from_bytes(block.data[block_offset:block_offset + 4], 'little')
-                print(f"word: {word}")
+                print(f"read hit [addr={A} index={index} block_index={block_index} tag={tag} word={word} ({memory_block_start} - {memory_block_start + CACHE_BLOCK_SIZE - 1})]" )
+                print(f"=> address = {A} <{format(A,f'0{MEMORY_ADDRESS_BITS}b')}>; word={word}")
                 return word
 
         # Cache miss: Load block from memory
-        print(f"read miss [index= {index} tag= {tag}]")
-        memory_block_start = CACHE_BLOCK_SIZE * (A // CACHE_BLOCK_SIZE)
-
         # Read new data into first block in the set
         block = cache_set.blocks[0]
         block.tag = tag
@@ -99,17 +96,18 @@ if __name__ == "__main__":
 
         # Return the requested word
         word = int.from_bytes(block.data[block_offset:block_offset + 4], 'little')
-        print(f"word: {word}")
+        print(f"read hit [addr={A} index={index} block_index={0} tag={tag} word={word} ({memory_block_start} - {memory_block_start + CACHE_BLOCK_SIZE - 1})]" )
+        print(f"=> address = {A} <{format(A, f'0{MEMORY_ADDRESS_BITS}b')}>; word={word}")
         return word
 
     # Test Case 1:
     print("---------------")
-    print("cache size = " + str(CACHE_SIZE))
-    print("block size = " + str(CACHE_BLOCK_SIZE))
-    print("#blocks = " + str(num_blocks))
-    print("#sets = " + str(NUM_SETS))
-    print("associativity = " + str(cache_associativity))
-    print("tag length = " + str(tag_length))
+    print(f"cache size = {CACHE_SIZE}")
+    print(f"block size = {CACHE_BLOCK_SIZE}" )
+    print(f"#blocks = {NUM_BLOCKS}")
+    print(f"#sets = {NUM_SETS}")
+    print(f"associativity = {CACHE_ASSOCIATIVITY}")
+    print(f"tag length = {TAG_LENGTH}")
     print("---------------")
 
 
