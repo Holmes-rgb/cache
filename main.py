@@ -63,17 +63,14 @@ if __name__ == "__main__":
             self.index_length = math.log2(NUM_SETS)
             self.block_offset_length = math.log2(CACHE_BLOCK_SIZE)
 
-
     # Initialize cache as a list of sets
     cache = Cache(NUM_SETS, CACHE_ASSOCIATIVITY, CACHE_BLOCK_SIZE)
-
 
     def decode_address(A):
         block_offset = A & ((1 << OFFSET_LENGTH) - 1)
         index = (A >> OFFSET_LENGTH) & ((1 << INDEX_LENGTH) - 1)
         tag = A >> (OFFSET_LENGTH + INDEX_LENGTH)
         return [tag, index, block_offset]
-
 
     def read_word(A):
         [tag, index, block_offset] = decode_address(A)
